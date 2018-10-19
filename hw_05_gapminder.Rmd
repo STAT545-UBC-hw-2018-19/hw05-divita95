@@ -1,0 +1,309 @@
+---
+title: "Homework05- Factor and figure Management"
+output: 
+  html_document:
+    keep_md: true
+---
+
+#### Load packages
+
+
+
+The following packages were used for this assignment:
+
+
+
+```{r}
+suppressPackageStartupMessages(library(gapminder))
+suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(knitr))
+suppressPackageStartupMessages(library(kableExtra))
+suppressPackageStartupMessages(library(plotly))
+suppressPackageStartupMessages(library(reshape2))
+suppressPackageStartupMessages(library(scales))
+```
+
+
+Goals:
+
+- Reorder a factor in a principled way based on the data and demonstrate the effect in arranged data and in figures.
+- Write some data to file and load it back into R.
+- Improve a figure (or make one from scratch), using new knowledge, e.g., control the color scheme, use factor levels, smoother mechanics.
+- Make a plotly visual.
+- Implement visualization design principles.
+
+
+### **Part1: Factor Management**
+
+With the data set of your choice, after ensuring the variable(s) you’re exploring are indeed factors, you are expected to:
+
+1. Drop factor / levels;
+2. Reorder levels based on knowledge from data.
+
+**1. Drop Levels**
+
+Initially, the origial gapminder data was explored to extract some basic informations.
+
+
+```{r}
+# information of the data before removing factors
+levels(gapminder$continent)
+nrow(gapminder)
+dim(gapminder)
+str(gapminder)
+```
+
+
+
+It can be concluded that the gapminder data set has 5 levels of continents. It consists of 1704 rows and 6 columns. 
+
+
+Now, lets drop on of the continent levels: Oceania
+
+
+
+```{r}
+# dropping levels
+
+new_data <- gapminder %>% 
+  filter(continent != "Oceania") %>% 
+  droplevels()
+
+# representing in the form if tables
+knitr::kable(table(new_data$continent), col.names = c("Continent","Number of Countries")) %>% 
+  kable_styling(bootstrap_options = "bordered", latex_options = "basic", full_width = F)
+
+```
+
+
+```{r}
+#information on the newdata formed after dropping levels
+
+str(new_data)
+nrow(new_data)
+levels(new_data$continent)
+dim(new_data)
+```
+
+
+
+It can be seen that using `droplevels()` the number of levels changed to 4 whereas if we has used `filter()` function, the number of levels would still be 5. Thus, dropping factors helps in sorting the data and easier to analyse.
+
+
+
+
+**2. Reordering the data**
+
+
+For this exercise, we used the standard deviation of gdpPercap for each continents and tried to arrange and reorder the data.
+
+
+```{r}
+## standard deviation of a quantitative variable- gdpPercap
+
+SD <- new_data %>% 
+  group_by(continent) %>% 
+  summarise(SD_gdpPercap = sd(gdpPercap))
+knitr::kable(SD, col.names = c("Continent","SD of gdpPercap")) %>% 
+  kable_styling(bootstrap_options = "bordered", latex_options = "basic", full_width = F)
+```
+
+
+```{r}
+# visualising the change of SD within the continents
+
+ggplot(SD, aes(continent, SD_gdpPercap)) +
+  geom_point() +
+  labs(title = "Standard Deviation of gdpPercap wrt to Continents")
+```
+
+
+```{r}
+#arranging the data
+
+arrange_data <- new_data %>% 
+  group_by(continent) %>% 
+  summarise(SD_gdpPercap = sd(gdpPercap)) %>% 
+  arrange(SD_gdpPercap)
+knitr::kable(arrange_data, col.names = c("Continent","SD of gdpPercap")) %>% 
+  kable_styling(bootstrap_options = "bordered", latex_options = "basic", full_width = F)
+```
+
+```{r}
+ggplot(arrange_data, aes(continent, SD_gdpPercap )) +
+  geom_point() +
+  labs(title = "Standard Deviation of gdpPercap wrt to Continents")
+```
+
+```{r}
+#reordering the data
+
+fctreorder_data <- new_data %>% 
+  group_by(continent) %>% 
+  summarise(SD_gdpPercap = sd(gdpPercap)) %>% 
+  mutate(continent = fct_reorder(continent, SD_gdpPercap))
+knitr::kable(fctreorder_data, col.names = c("Continent","SD of gdpPercap")) %>% 
+  kable_styling(bootstrap_options = "bordered", latex_options = "basic", full_width = F)
+```
+
+
+```{r}
+ggplot(fctreorder_data, aes(continent, SD_gdpPercap )) +
+  geom_point() +
+  labs(title = "Standard Deviation of gdpPercap wrt to Continents")
+```
+ 
+```{r}
+#reorder and arranging the data
+
+arrange_reorder_data <- new_data %>% 
+  group_by(continent) %>% 
+  summarise(SD_gdpPercap = sd(gdpPercap)) %>% 
+  mutate(continent = fct_reorder(continent, SD_gdpPercap)) %>% 
+  arrange(SD_gdpPercap)
+knitr::kable(arrange_reorder_data, col.names = c("Continent","SD of gdpPercap")) %>% 
+  kable_styling(bootstrap_options = "bordered", latex_options = "basic", full_width = F)
+
+  
+```
+
+
+```{r}
+ggplot(arrange_reorder_data, aes(continent, SD_gdpPercap )) +
+  geom_point() +
+  labs(title = "Standard Deviation of gdpPercap wrt to Continents")
+```
+
+
+**Observations:** It was observed that `arrange()` function arranges the data from the lowest to the highest value of `SD_gdppercap` that is in ascending order. The use of `fct_reorder()` did not affect the original order of the data while using `arrange()` and `fct_reorder()` together it was observed that the data was ordered in the same way as using `arrange()` alone. Therefore, `fct_reorder` didnot have much effect on the data.
+
+
+
+#### **Part2: FileI/O**
+
+
+Experiment with one or more of write_csv()/read_csv() (and/or TSV friends), saveRDS()/readRDS(), dput()/dget(). Create something new, probably by filtering or grouped-summarization of Gapminder.
+
+
+
+
+For this exercise, lets output the maximum lifeExp of each continent and then read it back again.
+
+
+```{r}
+file<- gapminder %>% 
+  group_by(continent) %>% 
+  summarise(max_lifeExp = max(lifeExp))
+knitr::kable(file, col.names = c("Continent","maximum lifeExp")) %>% 
+  kable_styling(bootstrap_options = "bordered", latex_options = "basic", full_width = F)
+```
+
+
+```{r}
+write_csv(file, "file_csv.csv")
+file_csv <- read_csv("file_csv.csv")
+file_csv
+```
+
+
+
+We observe that the output is same in both the cases.
+
+
+Trying on `saveRDS`, `dput()/dget()` functions 
+
+
+```{r}
+saveRDS(file, "file_rds.rds")
+
+file_rds <- readRDS("file_rds.rds")
+file_rds
+```
+
+```{r}
+dput(file, "file.txt")
+
+file_get <- dget("file.txt")
+file_get
+```
+
+
+We can see that all the above functions give the same output as the original output.
+
+
+
+#### **Part3: Visualisation Design**
+
+
+Creating a plot of lifeExp v/s gdpPercap and modifying the plot using visualistaion design recently learned in class.
+
+The plot shows the relation between lifeExp and gdpPercap for each continent using facet_wrap.
+
+
+```{r}
+gapminder %>% 
+  ggplot(aes(lifeExp, gdpPercap )) +
+  facet_wrap(~continent) +
+  geom_point(aes(color = continent)) +
+  labs(title = "Plot of lifeExp versus gdpPercap for the continents")
+```
+
+
+
+The use of visuale design on the above graph made the analyses easier. The graph below was extracted from the above but some extra features were added. The y_scale was changed to `logarithm_scale` which gave a clear and broader picture as compared to the above one. Also using palette color for `pop` helped us determine the number of people with a particular lifeExp range.
+
+
+
+
+```{r}
+figure <-gapminder %>% 
+  ggplot(aes(lifeExp, gdpPercap )) +
+  facet_wrap(~continent) +
+  geom_point(aes(color = pop)) +
+  scale_x_continuous(labels=dollar_format()) +
+  scale_colour_distiller(
+         trans   = "log10",
+         breaks  = 10^(1:10),
+         labels  = comma_format(),
+         palette = "Blues"
+     ) +
+ scale_y_log10(breaks=10*(1:10)) +
+     theme_bw() +
+  labs(title = "Plot of lifeExp versus gdpPercap for the continents")
+figure
+```
+
+
+
+Next, we convert the above graph into a plotly plot.
+
+
+```{r}
+library(plotly)
+#ggplotly(p)
+
+```
+
+
+
+
+#### **Part4: Writing figures to files**
+
+
+Use ggsave() to explicitly save a plot to file. Then use embed it in your report.
+
+
+Firstly, we use `ggsave()` to save the above figure as a `.png` file
+
+
+
+```{r}
+ggsave("my_plot.png", plot = figure, width = 10, height = 5, dpi = 100)
+```
+
+
+Next, we embed the plot in this report.
+
+
+![figure.png](https://github.com/STAT545-UBC-students/hw05-divita95/blob/master/my_plot.png)

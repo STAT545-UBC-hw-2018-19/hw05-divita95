@@ -1,0 +1,4 @@
+structure(list(continent = structure(1:5, .Label = c("Africa", 
+"Americas", "Asia", "Europe", "Oceania"), class = "factor"), 
+    max_lifeExp = c(76.442, 80.653, 82.603, 81.757, 81.235)), class = c("tbl_df", 
+"tbl", "data.frame"), row.names = c(NA, -5L))
